@@ -112,14 +112,31 @@ const QUESTIONS = [
   {q:"한때 9번째 행성이었다가 왜소행성으로 분류된 천체는?", o:["세레스","에리스","명왕성","하우메아"], a:2, e:"2006년 국제천문연맹이 명왕성을 왜소행성으로 재분류했습니다."}
 ];
 const card = document.getElementById('card');
-let i = 0, score = 0, answered = false;
+let questions = [], i = 0, score = 0, answered = false;
+
+function shuffle(items){
+  for(let n=items.length-1;n>0;n--){
+    const j = Math.floor(Math.random()*(n+1));
+    [items[n],items[j]] = [items[j],items[n]];
+  }
+  return items;
+}
+
+function startQuiz(){
+  questions = shuffle(QUESTIONS.map(d=>{
+    const options = shuffle(d.o.map((text,index)=>({text,index})));
+    return {...d,o:options.map(option=>option.text),a:options.findIndex(option=>option.index===d.a)};
+  }));
+  i = 0; score = 0;
+  render();
+}
 
 function render(){
   answered = false;
-  const d = QUESTIONS[i];
+  const d = questions[i];
   card.innerHTML = `
-    <div class="top"><span>문제 ${i+1} / ${QUESTIONS.length}</span><span class="score">점수 ${score}</span></div>
-    <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="${QUESTIONS.length}" aria-valuenow="${i}"><div style="width:${i/QUESTIONS.length*100}%"></div></div>
+    <div class="top"><span>문제 ${i+1} / ${questions.length}</span><span class="score">점수 ${score}</span></div>
+    <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="${questions.length}" aria-valuenow="${i}"><div style="width:${i/questions.length*100}%"></div></div>
     <p class="q"></p>
     <div class="opts"></div>
     <div class="fb" aria-live="polite"></div>
@@ -136,7 +153,7 @@ function render(){
 
 function answer(idx){
   if(answered) return; answered = true;
-  const d = QUESTIONS[i], btns = [...card.querySelectorAll('.opt')];
+  const d = questions[i], btns = [...card.querySelectorAll('.opt')];
   const ok = idx === d.a;
   btns.forEach((b,n)=>{
     b.disabled = true;
@@ -148,17 +165,17 @@ function answer(idx){
   card.classList.remove('flash-good','flash-bad'); void card.offsetWidth;
   card.classList.add(ok ? 'flash-good' : 'flash-bad');
   card.querySelector('.score').textContent = `점수 ${score}`;
-  card.querySelector('.bar>div').style.width = `${(i+1)/QUESTIONS.length*100}%`;
+  card.querySelector('.bar>div').style.width = `${(i+1)/questions.length*100}%`;
   card.querySelector('.fb').innerHTML = `<b class="${ok?'ok':'no'}">${ok?'✅ 정답입니다!':'❌ 아쉬워요!'}</b>${d.e}`;
   const next = card.querySelector('.btn');
   next.hidden = false;
-  next.textContent = i === QUESTIONS.length-1 ? '결과 보기' : '다음 문제';
-  next.onclick = () => { i++; i < QUESTIONS.length ? render() : showResult(); };
+  next.textContent = i === questions.length-1 ? '결과 보기' : '다음 문제';
+  next.onclick = () => { i++; i < questions.length ? render() : showResult(); };
   next.focus();
 }
 
 function showResult(){
-  const n = QUESTIONS.length, p = score/n;
+  const n = questions.length, p = score/n;
   const [emoji,title,msg] =
     p === 1 ? ['🏆','완벽해요!','당신은 진정한 우주 비행사!'] :
     p >= .8 ? ['🚀','훌륭해요!','우주 탐사 전문가 수준이에요.'] :
@@ -175,9 +192,9 @@ function showResult(){
       <p class="msg">${msg}</p>
       <button class="btn">다시 하기</button>
     </div>`;
-  card.querySelector('.btn').onclick = () => { i = 0; score = 0; render(); };
+  card.querySelector('.btn').onclick = startQuiz;
 }
-render();
+startQuiz();
 </script>
 </body>
 </html>
